@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Cartão de Consumo — Bares</title>
+<style>
+  :root{
+    --navy:#10233F; --gold:#E8A33D; --cream:#F7F5F1; --ink:#1B2430;
+    --slate:#5B6472; --line:#E4E0D8; --red:#C24949; --mono:'Courier New', Courier, monospace;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family: Georgia, serif; background:var(--cream); color:var(--ink); -webkit-tap-highlight-color:transparent; }
+  .app{ max-width:480px; margin:0 auto; min-height:100vh; background:var(--cream); display:flex; flex-direction:column; }
+
+  /* LOGIN */
+  #loginScreen{
+    flex:1; display:flex; align-items:center; justify-content:center; padding:28px 20px;
+    position:relative; overflow:hidden; color:var(--cream);
+  }
+  #loginScreen::before{
+    content:''; position:absolute; inset:-15px;
+    background: url('https://images.unsplash.com/photo-1547146598-0962d0d87c97?fm=jpg&q=80&w=1200&auto=format&fit=crop') center 30% / cover no-repeat;
+    filter: blur(4px) brightness(0.45) saturate(1.1);
+    z-index:0;
+  }
+  #loginScreen::after{
+    content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(232,163,61,0.12), transparent 45%),
+      linear-gradient(180deg, rgba(6,6,6,0.35) 0%, rgba(6,6,6,0.85) 55%, rgba(6,6,6,0.95) 100%);
+    z-index:0;
+  }
+  .login-card{
+    width:100%; max-width:400px; background:rgba(18,17,16,0.72); border:1px solid rgba(232,163,61,0.55);
+    border-radius:22px; padding:36px 28px 30px; backdrop-filter:blur(6px); box-shadow:0 20px 60px rgba(0,0,0,0.55);
+    position:relative; z-index:1;
+  }
+  .login-logo{ display:flex; justify-content:center; margin-bottom:14px; }
+  .brand-sub{ text-align:center; font-size:27px; font-weight:800; margin:0 0 2px 0; font-family:Arial,sans-serif; letter-spacing:0.3px; }
+  .brand-sub .accent{ color:var(--gold); font-weight:800; }
+  .login-divider{ display:flex; align-items:center; gap:10px; margin:20px 0 22px; }
+  .login-divider .ln{ flex:1; height:1px; background:linear-gradient(90deg, transparent, rgba(232,163,61,0.5), transparent); }
+  .login-divider .ic{ font-size:15px; opacity:0.9; }
+
+  .field{ margin-bottom:16px; border:1px solid rgba(232,163,61,0.35); border-radius:10px; padding:10px 14px 9px; background:rgba(255,255,255,0.02); display:flex; align-items:flex-start; gap:12px; }
+  .field .fic{ color:var(--gold); flex-shrink:0; margin-top:2px; }
+  .field .fbody{ flex:1; min-width:0; }
+  .field label{ display:block; font-size:10.5px; letter-spacing:1.5px; text-transform:uppercase; color:#B9A98A; margin-bottom:4px; font-family:Arial,sans-serif; }
+  .field .prow{ display:flex; align-items:center; gap:8px; }
+  .field input{ width:100%; border:none; background:transparent; color:var(--cream); font-size:15px; font-family:Arial,sans-serif; padding:0; }
+  .field input:focus{ outline:none; }
+  .field input::placeholder{ color:#6B6558; }
+  .eye-toggle{ background:none; border:none; color:#8A8477; cursor:pointer; font-size:15px; padding:0; flex-shrink:0; }
+
+  .btn-gold{ width:100%; padding:15px; background:linear-gradient(135deg, #F3C065, #D98F2B); color:#241804; border:none; border-radius:10px; font-weight:800; font-size:14px; letter-spacing:1.5px; text-transform:uppercase; font-family:Arial,sans-serif; cursor:pointer; margin-top:6px; box-shadow:0 8px 20px rgba(217,143,43,0.35); }
+  .btn-gold:active{ opacity:0.9; }
+
+  .or-divider{ display:flex; align-items:center; gap:10px; margin:18px 0 14px; font-family:Arial,sans-serif; font-size:11px; letter-spacing:2px; color:#786F5C; }
+  .or-divider .ln{ flex:1; height:1px; background:rgba(255,255,255,0.12); }
+
+  .link-ghost{ text-align:center; margin-top:6px; color:#B9A98A; font-size:13px; font-family:Arial,sans-serif; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .link-ghost span{ color:var(--gold); text-decoration:none; cursor:pointer; }
+  .link-ghost.secondary{ margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08); }
+  #loginError{ color:#FF8A8A; font-size:13px; margin-top:2px; margin-bottom:10px; font-family:Arial,sans-serif; min-height:16px; text-align:center; }
+
+  /* SHELL */
+  #mainScreen{ display:none; flex-direction:column; min-height:100vh; }
+  header.topbar{ background:var(--navy); color:var(--cream); padding:18px 20px 16px; display:flex; justify-content:space-between; align-items:center; }
+  header.topbar .title{ font-size:19px; font-weight:700; }
+  header.topbar .who{ font-family:Arial,sans-serif; font-size:11px; color:#A9B4C4; }
+  header.topbar .logout{ font-family:Arial,sans-serif; font-size:12px; color:#A9B4C4; text-decoration:underline; cursor:pointer; background:none; border:none; }
+
+  main{ flex:1; padding:16px 16px 90px; }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+  .section-label{ font-family:Arial,sans-serif; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--slate); margin:0 0 10px 2px; }
+
+  .card{ background:#fff; border:1px solid var(--line); border-radius:3px; padding:16px; margin-bottom:14px; }
+  .row2{ display:flex; gap:10px; }
+  .row2 > *{ flex:1; }
+  .form-field{ margin-bottom:12px; }
+  .form-field label{ display:block; font-family:Arial,sans-serif; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--slate); margin-bottom:5px; }
+  .form-field input, .form-field select{ width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:2px; font-size:15px; font-family:Arial,sans-serif; background:#fdfcfa; }
+  .btn-primary{ width:100%; padding:13px; background:var(--navy); color:#fff; border:none; border-radius:2px; font-family:Arial,sans-serif; font-weight:700; font-size:13px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+  .btn-secondary{ width:100%; padding:13px; background:transparent; color:var(--navy); border:1px solid var(--navy); border-radius:2px; font-family:Arial,sans-serif; font-weight:700; font-size:13px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+  .btn-danger-text{ color:var(--red); font-family:Arial,sans-serif; font-size:12px; text-decoration:underline; background:none; border:none; cursor:pointer; }
+
+  .ledger{ background:#fff; border:1px solid var(--line); border-radius:3px; overflow:hidden; }
+  .ledger-row{ display:flex; align-items:center; padding:12px 14px; border-bottom:1px dashed var(--line); gap:10px; }
+  .ledger-row:last-child{ border-bottom:none; }
+  .ledger-accent{ width:4px; align-self:stretch; border-radius:2px; background:var(--gold); flex-shrink:0; }
+  .ledger-main{ flex:1; min-width:0; }
+  .ledger-title{ font-size:15px; font-weight:600; }
+  .ledger-sub{ font-family:Arial,sans-serif; font-size:12px; color:var(--slate); margin-top:2px; }
+  .ledger-value{ font-family:var(--mono); font-size:15px; font-weight:700; white-space:nowrap; }
+  .empty{ text-align:center; padding:36px 20px; color:var(--slate); font-family:Arial,sans-serif; font-size:13px; }
+
+  .cart-item{ display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid var(--line); font-family:Arial,sans-serif; font-size:13px; }
+  .cart-total{ display:flex; justify-content:space-between; padding-top:12px; font-weight:700; font-size:17px; }
+  .cart-total .val{ font-family:var(--mono); }
+
+  .stat-row{ display:flex; gap:10px; margin-bottom:14px; }
+  .stat{ flex:1; background:var(--navy); color:#fff; border-radius:3px; padding:14px; }
+  .stat .lbl{ font-family:Arial,sans-serif; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:#A9B4C4; }
+  .stat .val{ font-family:var(--mono); font-size:19px; font-weight:700; color:var(--gold); margin-top:4px; }
+
+  .period-toggle{ display:flex; gap:8px; margin-bottom:14px; }
+  .period-toggle button{ flex:1; padding:9px; border:1px solid var(--navy); background:#fff; color:var(--navy); font-family:Arial,sans-serif; font-size:12px; font-weight:700; border-radius:2px; cursor:pointer; }
+  .period-toggle button.active{ background:var(--navy); color:#fff; }
+
+  .fab{ position:fixed; bottom:78px; right:calc(50% - 240px + 18px); width:52px; height:52px; border-radius:50%; background:var(--gold); color:var(--navy); font-size:28px; border:none; box-shadow:0 4px 14px rgba(0,0,0,0.25); cursor:pointer; z-index:20; }
+  @media (max-width:480px){ .fab{ right:18px; } }
+
+  nav.bottomnav{ position:fixed; bottom:0; left:0; right:0; max-width:480px; margin:0 auto; display:flex; background:var(--navy); border-top:1px solid #0C1B30; z-index:10; }
+  nav.bottomnav button{ flex:1; background:none; border:none; padding:11px 4px 9px; color:#8492A6; font-family:Arial,sans-serif; font-size:11px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; }
+  nav.bottomnav button.active{ color:var(--gold); }
+  nav.bottomnav .ic{ font-size:19px; }
+
+  .modal-backdrop{ display:none; position:fixed; inset:0; background:rgba(16,35,63,0.55); z-index:30; align-items:flex-end; justify-content:center; }
+  .modal-backdrop.show{ display:flex; }
+  .modal-sheet{ background:var(--cream); width:100%; max-width:480px; border-radius:14px 14px 0 0; padding:22px 18px 26px; max-height:85vh; overflow-y:auto; }
+  .modal-sheet h3{ margin:0 0 16px 0; font-size:18px; }
+  .modal-close{ text-align:center; margin-top:6px; }
+  .toast{ position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:11px 18px; border-radius:20px; font-family:Arial,sans-serif; font-size:13px; z-index:40; opacity:0; transition:opacity 0.25s; pointer-events:none; }
+  .toast.show{ opacity:1; }
+
+  /* ---------- CARTÃO DE CONSUMO (pré-visualização + impressão) ---------- */
+  .print-modal-backdrop{ display:none; position:fixed; inset:0; background:rgba(16,35,63,0.7); z-index:50; align-items:center; justify-content:center; padding:20px; }
+  .print-modal-backdrop.show{ display:flex; }
+  .print-wrap{ background:#DDD; padding:14px; border-radius:8px; max-height:90vh; overflow-y:auto; }
+  #consumoCard{ width:80mm; background:#fff; padding:5mm 4mm; font-family:Arial,Helvetica,sans-serif; color:#000; margin:0 auto; }
+  .cc-header{ text-align:center; margin-bottom:2.5mm; }
+  .cc-brand{ font-size:15px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; }
+  .cc-title{ font-size:10.5px; margin-top:1mm; }
+  .cc-slogan{ font-size:9px; font-style:italic; color:#333; margin-top:0.8mm; }
+  .cc-divider{ border-top:1px dashed #000; margin:2.2mm 0; }
+  .cc-meta{ font-size:10px; line-height:1.5; }
+  .cc-meta b{ font-weight:700; }
+  .cc-group-title{ font-size:11px; font-weight:700; margin:2.5mm 0 1.5mm; display:flex; justify-content:space-between; }
+  .bottles-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:2mm 1mm; margin-bottom:1mm; }
+  .bottle-cell{ display:flex; flex-direction:column; align-items:center; }
+  .bottle-num{ font-size:7px; margin-top:0.5mm; }
+  .cc-footer{ text-align:center; font-size:9px; margin-top:2.5mm; }
+  .cc-actions{ display:flex; gap:8px; margin-top:14px; }
+  .cc-actions button{ flex:1; }
+
+  @media print{
+    body *{ visibility:hidden; }
+    #consumoCard, #consumoCard *{ visibility:visible; }
+    #consumoCard{ position:absolute; top:0; left:0; width:80mm; margin:0; padding:2mm 3mm; }
+    @page{ size:80mm auto; margin:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- LOGIN -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">
+        <svg width="72" height="60" viewBox="0 0 100 84">
+          <path d="M50 6 L92 78 H62 L50 56 L38 78 H8 Z" fill="none" stroke="#E8A33D" stroke-width="7" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brand-sub">AV Soft — <span class="accent" id="authBrandSuffix">Bares</span></div>
+
+      <div class="login-divider"><div class="ln"></div><div class="ic">🥂</div><div class="ln"></div></div>
+
+      <div id="loginError"></div>
+
+      <div class="field">
+        <div class="fic">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 21V6l8-3 8 3v15"/><path d="M9 21v-6h6v6"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>
+        </div>
+        <div class="fbody">
+          <label>Nome do bar</label>
+          <input id="loginBarName" type="text" placeholder="Digite o nome do bar">
+        </div>
+      </div>
+
+      <div class="field" id="signupEmailField" style="display:none;">
+        <div class="fic">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 6l10 7 10-7"/></svg>
+        </div>
+        <div class="fbody">
+          <label>Email de recuperação</label>
+          <input id="signupEmail" type="email" placeholder="teuemail@exemplo.com">
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="fic">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </div>
+        <div class="fbody">
+          <label>Senha</label>
+          <div class="prow">
+            <input id="loginPass" type="password" placeholder="Digite sua senha">
+            <button type="button" class="eye-toggle" id="eyeToggle">
+              <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-gold" id="loginBtn">Entrar</button>
+
+      <div class="or-divider"><div class="ln"></div><div>OU</div><div class="ln"></div></div>
+
+      <div class="link-ghost" id="forgotPassLink">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E8A33D" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        <span>Esqueceu a senha?</span>
+      </div>
+      <div class="link-ghost secondary"><span id="toggleAuthMode">Ainda não tenho conta — Criar conta do bar</span></div>
+    </div>
+  </div>
+
+  <!-- MODAL: recuperar senha -->
+  <div class="modal-backdrop" id="forgotModal">
+    <div class="modal-sheet">
+      <h3>Recuperar senha</h3>
+      <p style="font-family:Arial,sans-serif; font-size:13px; color:var(--slate); margin-top:-8px;">
+        Digite o email de recuperação que usaste ao criar a conta do bar. Vamos enviar um link para redefinires a senha.
+      </p>
+      <div class="form-field"><label>Email de recuperação</label><input id="forgotEmail" type="email" placeholder="teuemail@exemplo.com"></div>
+      <button class="btn-primary" id="forgotSendBtn">Enviar link de recuperação</button>
+      <div class="modal-close"><button class="btn-danger-text" id="forgotCancelBtn">Cancelar</button></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="mainScreen">
+    <header class="topbar">
+      <div>
+        <div class="title" id="barTitle">Bar</div>
+        <div class="who">Conta activa</div>
+      </div>
+      <button class="logout" id="logoutBtn">Sair</button>
+    </header>
+
+    <main>
+      <!-- TAB: CARTAO -->
+      <section class="tab-panel active" id="tab-cartao">
+        <div class="section-field">
+          <div class="form-field"><label>Nome do cliente (opcional)</label><input id="clientName" type="text" placeholder="Ex: Mesa 4 / João"></div>
+        </div>
+
+        <div class="section-label">Apontar bebida</div>
+        <div class="card">
+          <div class="form-field"><label>Bebida</label><select id="drinkSelect"></select></div>
+          <div class="row2">
+            <div class="form-field"><label>Quantidade</label><input id="drinkQty" type="number" min="1" value="1"></div>
+            <div class="form-field"><label>Preço unit. (Kz)</label><input id="drinkPrice" type="number" readonly></div>
+          </div>
+          <button class="btn-secondary" id="addDrinkBtn">+ Adicionar ao cartão</button>
+        </div>
+
+        <div class="section-label">Consumo apontado</div>
+        <div class="card" id="cartCard">
+          <div id="cartList" class="empty">Nenhuma bebida apontada ainda</div>
+          <div class="cart-total"><span>Total</span><span class="val" id="cartTotal">0 Kz</span></div>
+        </div>
+        <button class="btn-primary" id="previewCardBtn" style="margin-bottom:20px;">Gerar cartão para imprimir</button>
+      </section>
+
+      <!-- TAB: BEBIDAS -->
+      <section class="tab-panel" id="tab-bebidas">
+        <div class="section-label">Menu de bebidas</div>
+        <div class="ledger" id="drinksList"></div>
+      </section>
+
+      <!-- TAB: HISTORICO -->
+      <section class="tab-panel" id="tab-historico">
+        <div class="period-toggle">
+          <button data-period="today" class="active">Hoje</button>
+          <button data-period="month">Este mês</button>
+          <button data-period="all">Tudo</button>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="lbl">Total vendido</div><div class="val" id="repTotal">0 Kz</div></div>
+          <div class="stat"><div class="lbl">Nº de cartões</div><div class="val" id="repCount">0</div></div>
+        </div>
+        <div class="section-label">Cartões emitidos</div>
+        <div class="ledger" id="repList"></div>
+      </section>
+
+      <!-- TAB: DEFINICOES -->
+      <section class="tab-panel" id="tab-definicoes">
+        <div class="section-label">Identidade do bar</div>
+        <div class="card">
+          <div class="form-field"><label>Nome do bar</label><input id="defBarName" type="text" placeholder="Ex: Bar Kilamba Lounge"></div>
+          <div class="form-field"><label>Slogan de boas-vindas</label><input id="defSlogan" type="text" placeholder="Ex: Aqui a noite é sempre boa!" maxlength="120"></div>
+          <div class="form-field">
+            <label>Logótipo</label>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div id="defLogoPreview" style="width:56px; height:56px; border-radius:8px; background:#fdfcfa; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; font-family:Arial,sans-serif; font-size:10px; color:var(--slate); text-align:center;">Sem logo</div>
+              <label class="btn-secondary" style="display:inline-block; width:auto; padding:10px 14px; cursor:pointer;">
+                Escolher foto
+                <input id="defLogoInput" type="file" accept="image/*" capture="environment" style="display:none;">
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-label">Cor do painel</div>
+        <div class="card">
+          <div id="defColorRow" style="display:flex; gap:10px; flex-wrap:wrap;">
+            <div class="def-swatch" data-color="#E8A33D" style="width:34px;height:34px;border-radius:50%;background:#E8A33D;cursor:pointer;border:2px solid var(--ink);"></div>
+            <div class="def-swatch" data-color="#C24949" style="width:34px;height:34px;border-radius:50%;background:#C24949;cursor:pointer;border:2px solid transparent;"></div>
+            <div class="def-swatch" data-color="#4A90A4" style="width:34px;height:34px;border-radius:50%;background:#4A90A4;cursor:pointer;border:2px solid transparent;"></div>
+            <div class="def-swatch" data-color="#7A9A5C" style="width:34px;height:34px;border-radius:50%;background:#7A9A5C;cursor:pointer;border:2px solid transparent;"></div>
+            <div class="def-swatch" data-color="#8A6AB0" style="width:34px;height:34px;border-radius:50%;background:#8A6AB0;cursor:pointer;border:2px solid transparent;"></div>
+            <input id="defColorCustom" type="color" value="#E8A33D" style="width:34px;height:34px;border-radius:50%;border:2px solid var(--line);padding:0;background:none;cursor:pointer;">
+          </div>
+        </div>
+
+        <div class="section-label">Eventos</div>
+        <div class="card">
+          <div id="defEventList"></div>
+          <div class="empty" id="defEmptyEvents" style="display:none;">Ainda não há eventos criados.</div>
+          <div style="margin-top:10px;">
+            <div class="form-field"><input id="defEvTitulo" type="text" placeholder="Título do evento (ex: Noite de Karaoke)" maxlength="60"></div>
+            <div class="form-field"><input id="defEvData" type="text" placeholder="Data (ex: Sábado, 12 de Julho)" maxlength="40"></div>
+            <div class="form-field"><input id="defEvDesc" type="text" placeholder="Descrição curta (opcional)" maxlength="200"></div>
+            <button class="btn-secondary" id="defAddEventoBtn">+ Adicionar evento</button>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="defSalvarBtn" style="margin-bottom:20px;">Guardar definições</button>
+      </section>
+    </main>
+
+    <button class="fab" id="fabAddDrink" title="Adicionar bebida ao menu">+</button>
+
+    <nav class="bottomnav">
+      <button data-tab="cartao" class="active"><span class="ic">🍾</span>Cartão</button>
+      <button data-tab="bebidas"><span class="ic">🍹</span>Bebidas</button>
+      <button data-tab="historico"><span class="ic">📊</span>Histórico</button>
+      <button data-tab="definicoes"><span class="ic">⚙️</span>Definições</button>
+    </nav>
+  </div>
+</div>
+
+<!-- MODAL: bebida -->
+<div class="modal-backdrop" id="drinkModal">
+  <div class="modal-sheet">
+    <h3 id="drinkModalTitle">Nova bebida</h3>
+    <div class="form-field"><label>Nome</label><input id="dName" type="text" placeholder="Ex: Cerveja Cuca"></div>
+    <div class="form-field"><label>Preço (Kz)</label><input id="dPrice" type="number" min="0"></div>
+    <button class="btn-primary" id="dSaveBtn">Guardar</button>
+    <button class="btn-danger-text" id="dDeleteBtn" style="margin-top:14px; display:none;">Eliminar bebida</button>
+    <div class="modal-close"><button class="btn-danger-text" id="dCancelBtn">Cancelar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: cartão de consumo (pré-visualização + impressão) -->
+<div class="print-modal-backdrop" id="printModal">
+  <div class="print-wrap">
+    <div id="consumoCard">
+      <div class="cc-header">
+        <div class="cc-brand" id="ccBarName">Nome do Bar</div>
+        <div class="cc-title">Cartão de Consumo</div>
+        <div class="cc-slogan" id="ccSlogan" style="display:none;"></div>
+      </div>
+      <div class="cc-divider"></div>
+      <div class="cc-meta">
+        <div><b>Cliente:</b> <span id="ccClient">—</span></div>
+        <div><b>Data:</b> <span id="ccDate"></span></div>
+      </div>
+      <div id="ccGroups"></div>
+      <div class="cc-divider"></div>
+      <div class="cc-meta"><b>Total:</b> <span id="ccTotal">0 Kz</span></div>
+      <div class="cc-footer">Cada garrafa = 1 bebida. Borre o círculo ao servir.</div>
+    </div>
+    <div class="cc-actions no-print">
+      <button class="btn-secondary" id="ccCloseBtn">Fechar</button>
+      <button class="btn-primary" id="ccPrintBtn">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  // Verifica se a configuração do Firebase foi preenchida antes de tentar carregar
+  const firebaseConfig = {
+    apiKey: "AIzaSyAT3ZeWsov7PfXZyJW6Q0OpAVHqULVHV7A",
+    authDomain: "software-de-bares.firebaseapp.com",
+    projectId: "software-de-bares",
+    storageBucket: "software-de-bares.firebasestorage.app",
+    messagingSenderId: "828464122483",
+    appId: "1:828464122483:web:43b51bde9d445262e53806"
+  };
+
+  function showFatalError(msg){
+    const el = document.getElementById('loginError');
+    if(el){ el.innerHTML = msg; el.style.color = '#FF8A8A'; }
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+
+  if(firebaseConfig.apiKey === "COLE_AQUI"){
+    showFatalError('⚠️ Falta colar a configuração do Firebase no código (procura por "COLE_AQUI" no ficheiro). Sem isso o app não liga à base de dados.');
+    throw new Error('Firebase config not set');
+  }
+
+  let firebaseModules;
+  try{
+    const [appMod, authMod, fsMod] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
+    ]);
+    firebaseModules = { appMod, authMod, fsMod };
+  }catch(err){
+    showFatalError('⚠️ Não foi possível carregar o Firebase (sem internet, ou este preview bloqueia scripts externos). Publica o ficheiro no Firebase Hosting ou abre-o directamente no navegador do telemóvel com internet ligada.');
+    throw err;
+  }
+
+  const { initializeApp } = firebaseModules.appMod;
+  const {
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+    createUserWithEmailAndPassword, signOut, sendPasswordResetEmail
+  } = firebaseModules.authMod;
+  const {
+    getFirestore, collection, doc, addDoc, setDoc, deleteDoc, getDocs, getDoc,
+    query, orderBy, runTransaction, serverTimestamp
+  } = firebaseModules.fsMod;
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ---------- helpers ----------
+  const kz = (n) => new Intl.NumberFormat('pt-AO', {maximumFractionDigits:0}).format(n) + ' Kz';
+  function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // Nome do bar -> chave normalizada, usada para localizar a conta (barLookup)
+  function barNameToKey(name){
+    return name.trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')   // remove acentos
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  // ---------- AUTH ----------
+  let mode = 'login';
+  const toggleAuthMode = document.getElementById('toggleAuthMode');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginError = document.getElementById('loginError');
+  const authBrandSuffix = document.getElementById('authBrandSuffix');
+  const forgotPassLink = document.getElementById('forgotPassLink');
+  const signupEmailField = document.getElementById('signupEmailField');
+
+  toggleAuthMode.addEventListener('click', () => {
+    mode = mode === 'login' ? 'signup' : 'login';
+    authBrandSuffix.textContent = mode === 'login' ? 'Bares' : 'Criar conta';
+    loginBtn.textContent = mode === 'login' ? 'Entrar' : 'Criar conta';
+    toggleAuthMode.textContent = mode === 'login' ? 'Ainda não tenho conta — Criar conta do bar' : 'Já tenho conta — Entrar';
+    forgotPassLink.style.display = mode === 'login' ? 'flex' : 'none';
+    signupEmailField.style.display = mode === 'signup' ? 'flex' : 'none';
+    loginError.textContent = '';
+  });
+
+  // olho de mostrar/ocultar senha
+  document.getElementById('eyeToggle').addEventListener('click', () => {
+    const input = document.getElementById('loginPass');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+
+  // ---------- ESQUECEU A SENHA ----------
+  const forgotModal = document.getElementById('forgotModal');
+  forgotPassLink.addEventListener('click', () => {
+    document.getElementById('forgotEmail').value = '';
+    forgotModal.classList.add('show');
+  });
+  document.getElementById('forgotCancelBtn').addEventListener('click', () => forgotModal.classList.remove('show'));
+  document.getElementById('forgotSendBtn').addEventListener('click', async () => {
+    const email = document.getElementById('forgotEmail').value.trim();
+    if(!email){ toast('Digita o teu email de recuperação.'); return; }
+    try{
+      await sendPasswordResetEmail(auth, email);
+    }catch(err){
+      // não revelamos se o email existe ou não, por segurança
+    }
+    forgotModal.classList.remove('show');
+    toast('Se esse email estiver registado, vais receber um link de recuperação em instantes.');
+  });
+
+  loginBtn.addEventListener('click', async () => {
+    const barName = document.getElementById('loginBarName').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    loginError.textContent = '';
+    if(!barName || !pass){ loginError.textContent = 'Preenche o nome do bar e a senha.'; return; }
+    const barKey = barNameToKey(barName);
+    if(!barKey){ loginError.textContent = 'Nome do bar inválido.'; return; }
+
+    try{
+      if(mode === 'login'){
+        // localiza o email real associado a este nome de bar
+        const lookupSnap = await getDoc(doc(db, 'barLookup', barKey));
+        if(!lookupSnap.exists()){ loginError.textContent = 'Bar não encontrado. Verifica o nome ou cria uma conta.'; return; }
+        const { email } = lookupSnap.data();
+        await signInWithEmailAndPassword(auth, email, pass);
+      } else {
+        const email = document.getElementById('signupEmail').value.trim();
+        if(!email){ loginError.textContent = 'Preenche o email de recuperação.'; return; }
+        const existing = await getDoc(doc(db, 'barLookup', barKey));
+        if(existing.exists()){ loginError.textContent = 'Já existe uma conta com este nome de bar.'; return; }
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        await setDoc(doc(db, 'bars', cred.user.uid), { name: barName, email, createdAt: serverTimestamp() });
+        await setDoc(doc(db, 'barLookup', barKey), { email, uid: cred.user.uid });
+      }
+    }catch(err){
+      loginError.textContent = traduzErro(err.code);
+    }
+  });
+
+  function traduzErro(code){
+    const map = {
+      'auth/invalid-email':'Email de recuperação inválido.',
+      'auth/user-not-found':'Conta não encontrada.',
+      'auth/wrong-password':'Senha incorrecta.',
+      'auth/invalid-credential':'Nome do bar ou senha incorrectos.',
+      'auth/email-already-in-use':'Este email já está a ser usado por outra conta.',
+      'auth/weak-password':'A senha precisa de pelo menos 6 caracteres.'
+    };
+    return map[code] || 'Erro: ' + code;
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+  let currentBarId = null;
+  let currentBarName = '';
+  let currentBarSlogan = '';
+
+  onAuthStateChanged(auth, async (user) => {
+    if(user){
+      currentBarId = user.uid;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainScreen').style.display = 'flex';
+      const barSnap = await getDoc(doc(db, 'bars', user.uid));
+      currentBarName = barSnap.exists() ? barSnap.data().name : 'Bar';
+      currentBarSlogan = barSnap.exists() ? (barSnap.data().slogan || '') : '';
+      document.getElementById('barTitle').textContent = currentBarName;
+      document.getElementById('ccBarName').textContent = currentBarName;
+      loadDrinks();
+      loadCards();
+      loadDefinicoes(barSnap.exists() ? barSnap.data() : {});
+    } else {
+      currentBarId = null;
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('mainScreen').style.display = 'none';
+    }
+  });
+
+  // ---------- TABS ----------
+  document.querySelectorAll('nav.bottomnav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('nav.bottomnav button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ---------- DRINKS (menu do bar) ----------
+  let drinks = [];
+  function drinksCol(){ return collection(db, 'bars', currentBarId, 'drinks'); }
+
+  async function loadDrinks(){
+    const snap = await getDocs(query(drinksCol(), orderBy('name')));
+    drinks = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderDrinksList();
+    renderDrinkSelect();
+  }
+
+  function renderDrinksList(){
+    const el = document.getElementById('drinksList');
+    if(drinks.length === 0){ el.innerHTML = '<div class="empty">Nenhuma bebida no menu ainda. Toca em + para adicionar.</div>'; return; }
+    el.innerHTML = drinks.map(d => `
+      <div class="ledger-row" data-id="${d.id}">
+        <div class="ledger-accent"></div>
+        <div class="ledger-main"><div class="ledger-title">${escapeHtml(d.name)}</div></div>
+        <div class="ledger-value">${kz(d.price)}</div>
+      </div>
+    `).join('');
+    el.querySelectorAll('.ledger-row').forEach(row => row.addEventListener('click', () => openDrinkModal(row.dataset.id)));
+  }
+
+  function renderDrinkSelect(){
+    const sel = document.getElementById('drinkSelect');
+    sel.innerHTML = drinks.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join('');
+    updateDrinkPriceField();
+  }
+  document.getElementById('drinkSelect').addEventListener('change', updateDrinkPriceField);
+  function updateDrinkPriceField(){
+    const d = drinks.find(x => x.id === document.getElementById('drinkSelect').value);
+    document.getElementById('drinkPrice').value = d ? d.price : '';
+  }
+
+  const drinkModal = document.getElementById('drinkModal');
+  let editingDrinkId = null;
+  document.getElementById('fabAddDrink').addEventListener('click', () => openDrinkModal(null));
+  document.getElementById('dCancelBtn').addEventListener('click', () => drinkModal.classList.remove('show'));
+
+  function openDrinkModal(id){
+    editingDrinkId = id;
+    const d = id ? drinks.find(x => x.id === id) : null;
+    document.getElementById('drinkModalTitle').textContent = d ? 'Editar bebida' : 'Nova bebida';
+    document.getElementById('dName').value = d ? d.name : '';
+    document.getElementById('dPrice').value = d ? d.price : '';
+    document.getElementById('dDeleteBtn').style.display = d ? 'block' : 'none';
+    drinkModal.classList.add('show');
+  }
+
+  document.getElementById('dSaveBtn').addEventListener('click', async () => {
+    const name = document.getElementById('dName').value.trim();
+    const price = Number(document.getElementById('dPrice').value);
+    if(!name || isNaN(price)){ toast('Preenche nome e preço.'); return; }
+    if(editingDrinkId){ await setDoc(doc(drinksCol(), editingDrinkId), { name, price }, { merge:true }); }
+    else{ await addDoc(drinksCol(), { name, price }); }
+    drinkModal.classList.remove('show');
+    toast('Bebida guardada.');
+    loadDrinks();
+  });
+
+  document.getElementById('dDeleteBtn').addEventListener('click', async () => {
+    if(!editingDrinkId) return;
+    await deleteDoc(doc(drinksCol(), editingDrinkId));
+    drinkModal.classList.remove('show');
+    toast('Bebida eliminada.');
+    loadDrinks();
+  });
+
+  // ---------- CARTÃO (apontar consumo) ----------
+  let cart = []; // {name, qty, price}
+
+  document.getElementById('addDrinkBtn').addEventListener('click', () => {
+    const id = document.getElementById('drinkSelect').value;
+    const d = drinks.find(x => x.id === id);
+    const qty = Number(document.getElementById('drinkQty').value);
+    if(!d || !qty || qty <= 0){ toast('Escolhe uma bebida e quantidade válida.'); return; }
+    const existing = cart.find(it => it.name === d.name);
+    if(existing){ existing.qty += qty; } else { cart.push({ name: d.name, qty, price: d.price }); }
+    renderCart();
+  });
+
+  function renderCart(){
+    const list = document.getElementById('cartList');
+    if(cart.length === 0){ list.className='empty'; list.textContent='Nenhuma bebida apontada ainda'; }
+    else{
+      list.className = '';
+      list.innerHTML = cart.map((it,i) => `
+        <div class="cart-item">
+          <span>${escapeHtml(it.name)} × ${it.qty}</span>
+          <span>${kz(it.price*it.qty)} <button data-i="${i}" class="rmCart" style="border:none;background:none;color:var(--red);cursor:pointer;">✕</button></span>
+        </div>
+      `).join('');
+      list.querySelectorAll('.rmCart').forEach(b => b.addEventListener('click', () => { cart.splice(Number(b.dataset.i),1); renderCart(); }));
+    }
+    document.getElementById('cartTotal').textContent = kz(cart.reduce((s,it)=>s+it.price*it.qty,0));
+  }
+
+  // ---------- BOTTLE ICON (SVG) ----------
+  function bottleSVG(){
+    return `
+      <svg viewBox="0 0 40 92" width="30" height="70">
+        <path d="M15,4 h10 v9 l5,9 v58 a5,5 0 0 1 -5,5 h-10 a5,5 0 0 1 -5,-5 v-58 l5,-9 z"
+          fill="none" stroke="#000" stroke-width="2.2"/>
+        <line x1="12" y1="13" x2="28" y2="13" stroke="#000" stroke-width="1.6"/>
+        <circle cx="20" cy="58" r="13" fill="none" stroke="#000" stroke-width="1.3" stroke-dasharray="2.5,2"/>
+      </svg>`;
+  }
+
+  function buildCardGroups(items){
+    return items.map(it => {
+      let bottles = '';
+      for(let i=1; i<=it.qty; i++){
+        bottles += `<div class="bottle-cell">${bottleSVG()}<div class="bottle-num">${i}</div></div>`;
+      }
+      return `
+        <div class="cc-group-title"><span>${escapeHtml(it.name)}</span><span>${it.qty} un.</span></div>
+        <div class="bottles-grid">${bottles}</div>
+      `;
+    }).join('<div class="cc-divider"></div>');
+  }
+
+  const printModal = document.getElementById('printModal');
+  document.getElementById('previewCardBtn').addEventListener('click', () => {
+    if(cart.length === 0){ toast('Aponta pelo menos uma bebida.'); return; }
+    document.getElementById('ccClient').textContent = document.getElementById('clientName').value.trim() || '—';
+    document.getElementById('ccDate').textContent = new Date().toLocaleString('pt-AO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    document.getElementById('ccGroups').innerHTML = buildCardGroups(cart);
+    const ccSloganEl = document.getElementById('ccSlogan');
+    if(currentBarSlogan){ ccSloganEl.textContent = currentBarSlogan; ccSloganEl.style.display = 'block'; }
+    else{ ccSloganEl.style.display = 'none'; }
+    const total = cart.reduce((s,it)=>s+it.price*it.qty,0);
+    document.getElementById('ccTotal').textContent = kz(total);
+    printModal.classList.add('show');
+  });
+
+  document.getElementById('ccCloseBtn').addEventListener('click', () => printModal.classList.remove('show'));
+  document.getElementById('ccPrintBtn').addEventListener('click', async () => {
+    window.print();
+    // regista o cartão no histórico
+    const total = cart.reduce((s,it)=>s+it.price*it.qty,0);
+    await addDoc(collection(db, 'bars', currentBarId, 'cards'), {
+      clientName: document.getElementById('clientName').value.trim() || null,
+      items: cart, total, createdAt: serverTimestamp()
+    });
+    toast('Cartão registado no histórico.');
+    cart = [];
+    renderCart();
+    document.getElementById('clientName').value = '';
+    printModal.classList.remove('show');
+    loadCards();
+  });
+
+  // ---------- HISTÓRICO ----------
+  let allCards = [];
+  async function loadCards(){
+    const snap = await getDocs(query(collection(db, 'bars', currentBarId, 'cards'), orderBy('createdAt','desc')));
+    allCards = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    renderReport('today');
+  }
+
+  document.querySelectorAll('.period-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.period-toggle button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      renderReport(btn.dataset.period);
+    });
+  });
+
+  function renderReport(period){
+    const now = new Date();
+    const filtered = allCards.filter(c => {
+      if(!c.createdAt) return period === 'all';
+      const d = c.createdAt.toDate ? c.createdAt.toDate() : new Date(c.createdAt);
+      if(period === 'today') return d.toDateString() === now.toDateString();
+      if(period === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      return true;
+    });
+    const total = filtered.reduce((s,c)=>s+c.total,0);
+    document.getElementById('repTotal').textContent = kz(total);
+    document.getElementById('repCount').textContent = filtered.length;
+
+    const el = document.getElementById('repList');
+    if(filtered.length === 0){ el.innerHTML = '<div class="empty">Sem cartões neste período.</div>'; return; }
+    el.innerHTML = filtered.map(c => {
+      const d = c.createdAt && c.createdAt.toDate ? c.createdAt.toDate() : null;
+      const dateStr = d ? d.toLocaleString('pt-AO',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+      const itemsStr = c.items.map(it => `${it.qty}× ${it.name}`).join(', ');
+      return `
+        <div class="ledger-row">
+          <div class="ledger-accent"></div>
+          <div class="ledger-main">
+            <div class="ledger-title">${escapeHtml(c.clientName || 'Cliente')}</div>
+            <div class="ledger-sub">${escapeHtml(itemsStr)} · ${dateStr}</div>
+          </div>
+          <div class="ledger-value">${kz(c.total)}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------- DEFINIÇÕES (identidade, cor, eventos) ----------
+  let defEventos = [];
+  let defLogoDataUrl = null; // base64 já redimensionado, pronto a guardar
+  let defCorSelecionada = '#E8A33D';
+
+  function aplicarCorTema(cor){
+    document.documentElement.style.setProperty('--gold', cor);
+    document.querySelectorAll('.def-swatch').forEach(sw => {
+      sw.style.borderColor = (sw.dataset.color.toLowerCase() === cor.toLowerCase()) ? 'var(--ink)' : 'transparent';
+    });
+  }
+
+  function loadDefinicoes(barData){
+    document.getElementById('defBarName').value = barData.name || currentBarName || '';
+    document.getElementById('defSlogan').value = barData.slogan || '';
+    defLogoDataUrl = barData.logoURL || null;
+    if(defLogoDataUrl){
+      document.getElementById('defLogoPreview').innerHTML = `<img src="${defLogoDataUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+    }
+    defCorSelecionada = barData.corTema || '#E8A33D';
+    document.getElementById('defColorCustom').value = defCorSelecionada;
+    aplicarCorTema(defCorSelecionada);
+    defEventos = barData.eventos || [];
+    renderDefEventos();
+  }
+
+  document.getElementById('defColorRow').addEventListener('click', (e) => {
+    const sw = e.target.closest('.def-swatch');
+    if(!sw) return;
+    defCorSelecionada = sw.dataset.color;
+    aplicarCorTema(defCorSelecionada);
+  });
+  document.getElementById('defColorCustom').addEventListener('input', (e) => {
+    defCorSelecionada = e.target.value;
+    aplicarCorTema(defCorSelecionada);
+  });
+
+  // Redimensiona a foto do logo no telemóvel antes de guardar (evita ficheiros pesados no Firestore)
+  document.getElementById('defLogoInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 160;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const scale = Math.max(size / img.width, size / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+        defLogoDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        document.getElementById('defLogoPreview').innerHTML = `<img src="${defLogoDataUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function renderDefEventos(){
+    const list = document.getElementById('defEventList');
+    const empty = document.getElementById('defEmptyEvents');
+    list.innerHTML = '';
+    if(defEventos.length === 0){ empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    defEventos.forEach((ev, idx) => {
+      const row = document.createElement('div');
+      row.className = 'ledger-row';
+      row.innerHTML = `
+        <div class="ledger-accent"></div>
+        <div class="ledger-main">
+          <div class="ledger-title">${escapeHtml(ev.titulo)}</div>
+          <div class="ledger-sub">${escapeHtml(ev.data || '')}${ev.descricao ? ' · ' + escapeHtml(ev.descricao) : ''}</div>
+        </div>
+        <button data-idx="${idx}" class="defDelEvento btn-danger-text">✕</button>
+      `;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('.defDelEvento').forEach(btn => {
+      btn.addEventListener('click', () => {
+        defEventos.splice(Number(btn.dataset.idx), 1);
+        renderDefEventos();
+      });
+    });
+  }
+
+  document.getElementById('defAddEventoBtn').addEventListener('click', () => {
+    const titulo = document.getElementById('defEvTitulo').value.trim();
+    const data = document.getElementById('defEvData').value.trim();
+    const descricao = document.getElementById('defEvDesc').value.trim();
+    if(!titulo){ toast('Escreve pelo menos o título do evento.'); return; }
+    defEventos.push({ titulo, data, descricao });
+    document.getElementById('defEvTitulo').value = '';
+    document.getElementById('defEvData').value = '';
+    document.getElementById('defEvDesc').value = '';
+    renderDefEventos();
+  });
+
+  document.getElementById('defSalvarBtn').addEventListener('click', async () => {
+    const nomeBar = document.getElementById('defBarName').value.trim();
+    if(!nomeBar){ toast('O nome do bar não pode ficar vazio.'); return; }
+    try{
+      await setDoc(doc(db, 'bars', currentBarId), {
+        name: nomeBar,
+        slogan: document.getElementById('defSlogan').value.trim(),
+        logoURL: defLogoDataUrl || null,
+        corTema: defCorSelecionada,
+        eventos: defEventos
+      }, { merge: true });
+
+      currentBarName = nomeBar;
+      currentBarSlogan = document.getElementById('defSlogan').value.trim();
+      document.getElementById('barTitle').textContent = nomeBar;
+      document.getElementById('ccBarName').textContent = nomeBar;
+      toast('Definições guardadas ✓');
+    }catch(err){
+      console.error(err);
+      toast('Erro ao guardar definições.');
+    }
+  });
+</script>
+</body>
+</html>
+
